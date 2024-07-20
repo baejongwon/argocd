@@ -1,0 +1,137 @@
+# Default values for app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+image:
+  repository1: 117788050620.dkr.ecr.ap-northeast-2.amazonaws.com/kglibrary-1
+  repository2: 117788050620.dkr.ecr.ap-northeast-2.amazonaws.com/kglibrary-2
+  repository3: 117788050620.dkr.ecr.ap-northeast-2.amazonaws.com/kglibrary-3
+  pullPolicy: Always #IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag1: 44
+  tag2: 30
+  tag3: 15
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: "kglibrary"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: 
+    eks.amazonaws.com/role-arn: arn:aws:iam::117788050620:role/AmazonEKSLoadBalancerControllerRole
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  name1: book-svc
+  name2: main-svc
+  name3: reservation-svc
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: 
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/load-balancer-name: test-eks-alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=600  #스티키 세션 활성화, 일정 기간 일관된 대상으로 전달되도록 함. / 현재 600초
+    alb.ingress.kubernetes.io/target-type: ip  #ALB 대상그룹에 ip주소로 트래픽 전달, instance의 경우 id 및 ip주소로 전달
+    external-dns.alpha.kubernetes.io/hostname: bowfun.link  #외부 DNS host 이름
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'   #port
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:117788050620:certificate/82c7e177-8cba-42d9-a7e6-1b1c4a0a567e  # ACM arn
+    alb.ingress.kubernetes.io/ssl-redirect: '443'   #http로 들어갔을 때 https로 바꿔줌.
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06   # SSL/TLS 정책
+  hosts: 
+    - host: www.bowfun.link
+      paths:
+        - path: /book/
+          pathType: Prefix
+          backend:
+            serviceName: book-svc
+            servicePort: 80
+        - path: /reservation/
+          pathType: Prefix
+          backend:
+            serviceName: reservation-svc
+            servicePort: 80
+  defaultBackend:
+    serviceName: main-svc
+    servicePort: 80
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: true
+  name1: book-hpa
+  name2: main-hpa
+  name3: reservation-hpa
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+deployment:
+  name1: book-deployment
+  name2: main-deployment
+  name3: reservation-deployment
+
+redis:
+  enabled: true
